@@ -9,7 +9,7 @@ mod config;
 mod snake;
 
 use config::*;
-use opengl_graphics::{GlGraphics, OpenGL };
+use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventSettings, Events};
 use piston::input::{Button, Key, PressEvent, RenderArgs, RenderEvent, UpdateArgs, UpdateEvent};
 use piston::window::WindowSettings;
@@ -19,15 +19,15 @@ use rand::Rng;
 use snake::*;
 use std::collections::LinkedList;
 
-pub struct App {
-    gl: GlGraphics, // OpenGL drawing backend.
+pub struct Game {
+    gl: GlGraphics,
     snake: Snake,
     food: Node,
     score: u16,
     high_score: u16,
 }
 
-impl App {
+impl Game {
     fn render(&mut self, args: &RenderArgs) {
         use graphics::*;
 
@@ -43,7 +43,47 @@ impl App {
 
         self.gl.draw(args.viewport(), |c, gl| {
             //Clear the screen.
-            clear(GREEN, gl);
+            clear([0.3, 0.3, 0.3, 1.0], gl);
+
+            // Draw the food
+            rectangle(
+                YELLOW,
+                [CELL_W * food.x, CELL_W * food.y, CELL_W, CELL_W],
+                c.transform,
+                gl,
+            );
+
+            // Draw the snake
+            let color_multiplier = 1.0 / snake.nodes.len() as f32;
+            let mut node_index = 0.0;
+            for node in snake.nodes.iter().rev() {
+                rectangle(
+                    [
+                        color_multiplier * node_index,
+                        1.0 - color_multiplier * node_index,
+                        1.0 - color_multiplier * node_index,
+                        1.0,
+                    ],
+                    [CELL_W * node.x, CELL_W * node.y, CELL_W, CELL_W],
+                    c.transform,
+                    gl,
+                );
+
+                node_index += 1.0;
+            }
+
+             //Redraw the head in a different color
+            rectangle(
+                BLACK,
+                [
+                    CELL_W * snake.nodes.front().unwrap().x,
+                    CELL_W * snake.nodes.front().unwrap().y,
+                    CELL_W,
+                    CELL_W,
+                ],
+                c.transform,
+                gl,
+            );
 
             // Draw the seperator lines
             let num_of_cells_horizontal = (SCREEN_W / CELL_W) as i32;
@@ -70,38 +110,6 @@ impl App {
                     gl,
                 );
             }
-
-            // Draw the food
-            rectangle(
-                RED,
-                [CELL_W * food.x, CELL_W * food.y, CELL_W, CELL_W],
-                c.transform,
-                gl,
-            );
-
-            // Draw the snake
-            for node in snake.nodes.iter() {
-                rectangle(
-                    YELLOW,
-                    [CELL_W * node.x, CELL_W * node.y, CELL_W, CELL_W],
-                    c.transform,
-                    gl,
-                );
-            }
-
-            // Redraw the head in a different color
-            rectangle(
-                BLACK,
-                [
-                    CELL_W * snake.nodes.front().unwrap().x,
-                    CELL_W * snake.nodes.front().unwrap().y,
-                    CELL_W,
-                    CELL_W,
-                ],
-                c.transform,
-                gl,
-            );
-
         });
     }
 
@@ -135,28 +143,45 @@ impl App {
     }
 
     fn handle_input(&mut self, key: &Key) {
-        if *key == Key::Up {
+        let mut nodes_iter = self.snake.nodes.iter();
+        let head = nodes_iter.next().unwrap();
+        let second = nodes_iter.next().unwrap();
+
+        if *key == Key::Up || *key == Key::W {
             match self.snake.direction {
                 Direction::Down => {}
-                _ => self.snake.direction = Direction::Up,
+                _ => {
+                    if head.y != second.y + 1 as f64 {
+                        self.snake.direction = Direction::Up
+                    }
+                }
             }
-        } else if *key == Key::Down {
-            // Down key
+        } else if *key == Key::Down || *key == Key::S {
             match self.snake.direction {
                 Direction::Up => {}
-                _ => self.snake.direction = Direction::Down,
+                _ => {
+                    if head.y != second.y - 1 as f64 {
+                        self.snake.direction = Direction::Down
+                    }
+                }
             }
-        } else if *key == Key::Right {
-            // Right key
+        } else if *key == Key::Right || *key == Key::D {
             match self.snake.direction {
                 Direction::Left => {}
-                _ => self.snake.direction = Direction::Right,
+                _ => {
+                    if head.x != second.x - 1 as f64 {
+                        self.snake.direction = Direction::Right
+                    }
+                }
             }
-        } else if *key == Key::Left {
-            // Left key
+        } else if *key == Key::Left || *key == Key::A {
             match self.snake.direction {
                 Direction::Right => {}
-                _ => self.snake.direction = Direction::Left,
+                _ => {
+                    if head.x != second.x + 1 as f64 {
+                        self.snake.direction = Direction::Left
+                    }
+                }
             }
         };
     }
@@ -198,8 +223,9 @@ fn main() {
     // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V3_2;
 
-    let mut window: PistonWindow = WindowSettings::new("piston: hello_world", [SCREEN_W, SCREEN_H])
+    let mut window: PistonWindow = WindowSettings::new("Snake", [SCREEN_W, SCREEN_H])
         .exit_on_esc(true)
+        .resizable(false)
         .build()
         .unwrap();
 
@@ -214,7 +240,7 @@ fn main() {
     let snake = Snake { nodes, direction };
 
     // Create a new game and run it.
-    let mut app = App {
+    let mut game = Game {
         gl: GlGraphics::new(opengl),
         snake,
         food,
@@ -222,22 +248,22 @@ fn main() {
         high_score: 0,
     };
 
-    app.place_random_food();
+    game.place_random_food();
 
     let mut event_settings = EventSettings::new();
-    event_settings.ups = 10;
+    event_settings.ups = 16;
     let mut events = Events::new(event_settings);
     while let Some(e) = events.next(&mut window) {
         if let Some(args) = e.render_args() {
-            app.render(&args);
+            game.render(&args);
         }
 
         if let Some(args) = e.update_args() {
-            app.update(&args);
+            game.update(&args);
         }
 
         if let Some(Button::Keyboard(key)) = e.press_args() {
-            app.handle_input(&key)
+            game.handle_input(&key)
         };
     }
 }

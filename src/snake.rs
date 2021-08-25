@@ -43,13 +43,13 @@ impl Snake {
         head.y += y_change;
 
         if head.x == -1.0 {
-            head.x = SCREEN_W / CELL_W;
+            head.x = (SCREEN_W / CELL_W) - 1.0;
         } else if head.x == SCREEN_W / CELL_W {
             head.x = 0.0;
         }
 
         if head.y == -1.0 {
-            head.y = SCREEN_H / CELL_W;
+            head.y = (SCREEN_H / CELL_W) - 1.0;
         } else if head.y == SCREEN_H / CELL_W {
             head.y = 0.0;
         }
