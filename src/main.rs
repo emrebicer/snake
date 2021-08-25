@@ -1,28 +1,30 @@
-extern crate glutin_window;
 extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
+extern crate piston_window;
 extern crate rand;
+extern crate rusttype;
 
-mod snake;
 mod config;
+mod snake;
 
-use glutin_window::GlutinWindow as Window;
-use opengl_graphics::{GlGraphics, OpenGL};
-use piston::event_loop::{EventSettings, Events};
-use piston::input::{RenderArgs, RenderEvent, UpdateArgs, UpdateEvent, PressEvent, Button, Key};
-use piston::window::WindowSettings;
-use std::collections::LinkedList;
 use config::*;
-use snake::*;
+use opengl_graphics::{GlGraphics, OpenGL };
+use piston::event_loop::{EventSettings, Events};
+use piston::input::{Button, Key, PressEvent, RenderArgs, RenderEvent, UpdateArgs, UpdateEvent};
+use piston::window::WindowSettings;
+use piston_window::PistonWindow;
 use rand::thread_rng;
 use rand::Rng;
-
+use snake::*;
+use std::collections::LinkedList;
 
 pub struct App {
     gl: GlGraphics, // OpenGL drawing backend.
     snake: Snake,
-    food: Node
+    food: Node,
+    score: u16,
+    high_score: u16,
 }
 
 impl App {
@@ -99,11 +101,12 @@ impl App {
                 c.transform,
                 gl,
             );
+
         });
     }
 
     fn update(&mut self, _args: &UpdateArgs) {
-
+        // Update the snakes location
         match self.snake.direction {
             Direction::Up => self.snake.update_node_locations(0.0, -1.0),
             Direction::Down => self.snake.update_node_locations(0.0, 1.0),
@@ -111,47 +114,54 @@ impl App {
             Direction::Left => self.snake.update_node_locations(-1.0, 0.0),
         };
 
+        // Check if the snake did bite itself
+        let mut snake_nodes_iter = self.snake.nodes.iter();
+        let head = snake_nodes_iter.next().unwrap().clone();
+
+        while let Some(node) = snake_nodes_iter.next() {
+            if head.x == node.x && head.y == node.y {
+                // Bit itself...
+                println!("Game over!");
+            }
+        }
 
         // Check if the snake has eaten the food
-        let head = self.snake.nodes.front().unwrap();
         if head.x == self.food.x && head.y == self.food.y {
             // Just push back a new random node
             // it will be updated automatically
-            self.snake.nodes.push_back(Node{x:-1.0, y:-1.0});
+            self.snake.nodes.push_back(Node { x: -1.0, y: -1.0 });
             self.place_random_food();
         }
     }
 
-    fn handle_input(&mut self, key: &Key){
-
+    fn handle_input(&mut self, key: &Key) {
         if *key == Key::Up {
             match self.snake.direction {
-                Direction::Down => {},
-                _ => {self.snake.direction = Direction::Up}
+                Direction::Down => {}
+                _ => self.snake.direction = Direction::Up,
             }
-        } else if *key == Key::Down{
+        } else if *key == Key::Down {
             // Down key
             match self.snake.direction {
-                Direction::Up => {},
-                _ => {self.snake.direction = Direction::Down}
+                Direction::Up => {}
+                _ => self.snake.direction = Direction::Down,
             }
-        } else if *key == Key::Right{
+        } else if *key == Key::Right {
             // Right key
             match self.snake.direction {
-                Direction::Left=> {},
-                _ => {self.snake.direction = Direction::Right}
+                Direction::Left => {}
+                _ => self.snake.direction = Direction::Right,
             }
-        } else if *key == Key::Left{
+        } else if *key == Key::Left {
             // Left key
             match self.snake.direction {
-                Direction::Right=> {},
-                _ => {self.snake.direction = Direction::Left}
+                Direction::Right => {}
+                _ => self.snake.direction = Direction::Left,
             }
         };
     }
 
-    fn place_random_food(&mut self){
-
+    fn place_random_food(&mut self) {
         let x_len = SCREEN_W / CELL_W;
         let y_len = SCREEN_H / CELL_W;
 
@@ -165,7 +175,7 @@ impl App {
             let mut snake_nodes_iter = self.snake.nodes.iter();
 
             while let Some(current) = snake_nodes_iter.next() {
-                if current.x == rand_x as f64 && current.y == rand_y as f64{
+                if current.x == rand_x as f64 && current.y == rand_y as f64 {
                     flag = false;
                 }
             }
@@ -184,15 +194,11 @@ impl App {
     }
 }
 
-
-
 fn main() {
     // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V3_2;
 
-    // Create an Glutin window.
-    let mut window: Window = WindowSettings::new("spinning-square", [SCREEN_W, SCREEN_H])
-        .graphics_api(opengl)
+    let mut window: PistonWindow = WindowSettings::new("piston: hello_world", [SCREEN_W, SCREEN_H])
         .exit_on_esc(true)
         .build()
         .unwrap();
@@ -204,14 +210,16 @@ fn main() {
     nodes.push_back(Node { x: 12.0, y: 10.0 });
 
     let direction = Direction::Left;
-    let food = Node{ x: 5.0, y: 5.0 };
+    let food = Node { x: 5.0, y: 5.0 };
     let snake = Snake { nodes, direction };
 
     // Create a new game and run it.
     let mut app = App {
         gl: GlGraphics::new(opengl),
         snake,
-        food
+        food,
+        score: 0,
+        high_score: 0,
     };
 
     app.place_random_food();
