@@ -32,8 +32,11 @@ fn main() {
     nodes.push_back(Node { x: 11.0, y: 10.0 });
     nodes.push_back(Node { x: 12.0, y: 10.0 });
 
+    // Create obstacles
+    let obstacles: LinkedList<Node> = LinkedList::new();
+
     let direction = Direction::Left;
-    let food = Node { x: 5.0, y: 5.0 };
+    let food = Node { x: -1.0, y: -1.0 };
     let snake = Snake { nodes, direction };
 
     // Create a new game and run it.
@@ -41,10 +44,12 @@ fn main() {
         window,
         snake,
         food,
+        obstacles,
         high_score: 0,
     };
 
     game.place_random_food();
+    game.place_random_obstacles(10);
 
     let mut event_settings = EventSettings::new();
     event_settings.ups = 16;

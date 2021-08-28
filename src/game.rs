@@ -1,17 +1,21 @@
-#[path = "config.rs"] mod config;
-#[path = "snake.rs"] pub mod snake;
+#[path = "config.rs"]
+mod config;
+#[path = "snake.rs"]
+pub mod snake;
 
 use config::*;
-use snake::*;
 use piston::input::{Key, RenderArgs, UpdateArgs};
 use piston_window::*;
 use rand::thread_rng;
 use rand::Rng;
+use snake::*;
+use std::collections::LinkedList;
 
 pub struct Game {
     pub window: PistonWindow,
     pub snake: Snake,
     pub food: Node,
+    pub obstacles: LinkedList<Node>,
     pub high_score: u16,
 }
 
@@ -22,6 +26,7 @@ impl Game {
         const SEPERATOR_LINE_RADIUS: f64 = 0.5;
 
         let snake = &self.snake;
+        let obstacles = &self.obstacles;
         let food = &self.food;
         let font_size: u32 = 32;
         let text_padding: f64 = 10.0;
@@ -71,6 +76,18 @@ impl Game {
                 c.transform,
                 gl,
             );
+
+            // Draw the obstacles
+            for obstacle in obstacles.iter() {
+                rectangle(
+                    [1.0, 0.0, 0.5, 1.0],
+                    [CELL_W * obstacle.x, CELL_W * obstacle.y, CELL_W, CELL_W],
+                    c.transform,
+                    gl,
+                );
+
+                node_index += 1.0;
+            }
 
             // Draw the seperator lines
             for i in 1..num_of_cells_horizontal {
@@ -127,7 +144,17 @@ impl Game {
         while let Some(node) = snake_nodes_iter.next() {
             if head.x == node.x && head.y == node.y {
                 // Bit itself...
-                println!("Game over!");
+                self.game_over();
+            }
+        }
+
+        // Check if the snake hit an obstacle
+        let mut obstacles_iter = self.obstacles.iter();
+
+        while let Some(node) = obstacles_iter.next() {
+            if head.x == node.x && head.y == node.y {
+                // Hit an obstacle
+                self.game_over();
             }
         }
 
@@ -184,7 +211,23 @@ impl Game {
         };
     }
 
+    pub fn place_random_obstacles(&mut self, count: i32) {
+        for _ in 0..count {
+            let (rand_x, rand_y) = self.find_random_available_node();
+            self.obstacles.push_back(Node {
+                x: rand_x,
+                y: rand_y,
+            });
+        }
+    }
+
     pub fn place_random_food(&mut self) {
+        let (rand_x, rand_y) = self.find_random_available_node();
+        self.food.x = rand_x;
+        self.food.y = rand_y;
+    }
+
+    fn find_random_available_node(&self) -> (f64, f64) {
         let x_len = SCREEN_W / CELL_W;
         let y_len = SCREEN_H / CELL_W;
 
@@ -193,26 +236,38 @@ impl Game {
             let rand_x: i32 = rng.gen_range(0, x_len as i32);
             let rand_y: i32 = rng.gen_range(0, y_len as i32);
 
-            // Check if the snake is on those coordinates
             let mut flag = true;
-            let mut snake_nodes_iter = self.snake.nodes.iter();
 
+            // Check if the snake is on those coordinates
+            let mut snake_nodes_iter = self.snake.nodes.iter();
             while let Some(current) = snake_nodes_iter.next() {
                 if current.x == rand_x as f64 && current.y == rand_y as f64 {
                     flag = false;
+                    break;
                 }
             }
 
-            // Check if the position is not the same as previous
+            // Check if the food is on those coordinates
             if self.food.x == rand_x as f64 && self.food.y == rand_y as f64 {
                 flag = false;
             }
 
+            // Check if one of the obstacles are on this coordinates
+            let mut obstacles_iter = self.obstacles.iter();
+            while let Some(current) = obstacles_iter.next() {
+                if current.x == rand_x as f64 && current.y == rand_y as f64 {
+                    flag = false;
+                    break;
+                }
+            }
+
             if flag {
-                self.food.x = rand_x as f64;
-                self.food.y = rand_y as f64;
-                break;
+                return (rand_x as f64, rand_y as f64);
             }
         }
+    }
+
+    fn game_over(&self){
+        println!("Game over...");
     }
 }
