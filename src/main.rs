@@ -1,49 +1,38 @@
-extern crate graphics;
-extern crate opengl_graphics;
-extern crate piston;
-extern crate piston_window;
-extern crate rand;
-extern crate rusttype;
-
 mod config;
 mod snake;
 
 use config::*;
-use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventSettings, Events};
 use piston::input::{Button, Key, PressEvent, RenderArgs, RenderEvent, UpdateArgs, UpdateEvent};
-use piston::window::WindowSettings;
-use piston_window::PistonWindow;
+use piston_window::*;
 use rand::thread_rng;
 use rand::Rng;
 use snake::*;
 use std::collections::LinkedList;
 
 pub struct Game {
-    gl: GlGraphics,
+    window: PistonWindow,
     snake: Snake,
     food: Node,
-    score: u16,
     high_score: u16,
 }
 
 impl Game {
-    fn render(&mut self, args: &RenderArgs) {
-        use graphics::*;
-
-        const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
-        const RED: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
-        const BLUE: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
+    fn render(&mut self, _args: &RenderArgs, event: &Event, glyphs: &mut Glyphs) {
         const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
         const YELLOW: [f32; 4] = [1.0, 1.0, 0.0, 1.0];
         const SEPERATOR_LINE_RADIUS: f64 = 0.5;
 
         let snake = &self.snake;
         let food = &self.food;
+        let font_size: u32 = 32;
+        let text_padding: f64 = 10.0;
 
-        self.gl.draw(args.viewport(), |c, gl| {
-            //Clear the screen.
-            clear([0.3, 0.3, 0.3, 1.0], gl);
+        self.window.draw_2d(event, |c, gl, device| {
+            //Clear the screen
+            clear([0.42, 0.0, 0.5, 1.0], gl);
+            let num_of_cells_horizontal = (SCREEN_W / CELL_W) as i32;
+            let num_of_cells_vertical = (SCREEN_H / CELL_W) as i32;
 
             // Draw the food
             rectangle(
@@ -72,7 +61,7 @@ impl Game {
                 node_index += 1.0;
             }
 
-             //Redraw the head in a different color
+            // Redraw the head in a different color
             rectangle(
                 BLACK,
                 [
@@ -86,9 +75,6 @@ impl Game {
             );
 
             // Draw the seperator lines
-            let num_of_cells_horizontal = (SCREEN_W / CELL_W) as i32;
-            let num_of_cells_vertical = (SCREEN_H / CELL_W) as i32;
-
             for i in 1..num_of_cells_horizontal {
                 line_from_to(
                     BLACK,
@@ -110,6 +96,20 @@ impl Game {
                     gl,
                 );
             }
+
+            // Render current score
+            text(
+                [0.0, 1.0, 0.0, 0.5],
+                font_size,
+                snake.nodes.len().to_string().as_str(),
+                &mut *glyphs,
+                c.transform
+                    .trans(text_padding, font_size as f64 + text_padding),
+                gl,
+            )
+            .unwrap();
+
+            glyphs.factory.encoder.flush(device);
         });
     }
 
@@ -220,13 +220,18 @@ impl Game {
 }
 
 fn main() {
-    // Change this to OpenGL::V2_1 if not working.
-    let opengl = OpenGL::V3_2;
-
     let mut window: PistonWindow = WindowSettings::new("Snake", [SCREEN_W, SCREEN_H])
         .exit_on_esc(true)
         .resizable(false)
         .build()
+        .unwrap();
+
+    // Load the glyph
+    let assets = find_folder::Search::ParentsThenKids(3, 3)
+        .for_folder("assets")
+        .unwrap();
+    let mut glyphs = window
+        .load_font(assets.join("PlaymegamesReguler-2OOee.ttf"))
         .unwrap();
 
     // Create the snake
@@ -241,10 +246,9 @@ fn main() {
 
     // Create a new game and run it.
     let mut game = Game {
-        gl: GlGraphics::new(opengl),
+        window,
         snake,
         food,
-        score: 0,
         high_score: 0,
     };
 
@@ -253,9 +257,9 @@ fn main() {
     let mut event_settings = EventSettings::new();
     event_settings.ups = 16;
     let mut events = Events::new(event_settings);
-    while let Some(e) = events.next(&mut window) {
+    while let Some(e) = events.next(&mut game.window) {
         if let Some(args) = e.render_args() {
-            game.render(&args);
+            game.render(&args, &e, &mut glyphs);
         }
 
         if let Some(args) = e.update_args() {
