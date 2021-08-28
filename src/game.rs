@@ -16,6 +16,7 @@ pub struct Game {
     pub snake: Snake,
     pub food: Node,
     pub obstacles: LinkedList<Node>,
+    pub score: u16,
     pub high_score: u16,
 }
 
@@ -30,10 +31,19 @@ impl Game {
         let food = &self.food;
         let font_size: u32 = 32;
         let text_padding: f64 = 10.0;
+        let score = &self.score;
+        let high_score = &self.high_score;
 
-        self.window.draw_2d(event, |c, gl, device| {
-            //Clear the screen
-            clear([0.42, 0.0, 0.5, 1.0], gl);
+        self.window.draw_2d(event, |c, g, device| {
+            // Check if the snake is dead
+            if !snake.is_alive {
+                render_game_over(c, g, glyphs, *score, *high_score);
+                glyphs.factory.encoder.flush(device);
+                return;
+            }
+
+            // Clear the screen
+            clear([0.42, 0.0, 0.5, 1.0], g);
             let num_of_cells_horizontal = (SCREEN_W / CELL_W) as i32;
             let num_of_cells_vertical = (SCREEN_H / CELL_W) as i32;
 
@@ -42,7 +52,7 @@ impl Game {
                 YELLOW,
                 [CELL_W * food.x, CELL_W * food.y, CELL_W, CELL_W],
                 c.transform,
-                gl,
+                g,
             );
 
             // Draw the snake
@@ -58,7 +68,7 @@ impl Game {
                     ],
                     [CELL_W * node.x, CELL_W * node.y, CELL_W, CELL_W],
                     c.transform,
-                    gl,
+                    g,
                 );
 
                 node_index += 1.0;
@@ -74,7 +84,7 @@ impl Game {
                     CELL_W,
                 ],
                 c.transform,
-                gl,
+                g,
             );
 
             // Draw the obstacles
@@ -83,7 +93,7 @@ impl Game {
                     [1.0, 0.0, 0.5, 1.0],
                     [CELL_W * obstacle.x, CELL_W * obstacle.y, CELL_W, CELL_W],
                     c.transform,
-                    gl,
+                    g,
                 );
 
                 node_index += 1.0;
@@ -97,7 +107,7 @@ impl Game {
                     [CELL_W * i as f64, 0.0],
                     [CELL_W * i as f64, SCREEN_H],
                     c.transform,
-                    gl,
+                    g,
                 );
             }
 
@@ -108,19 +118,18 @@ impl Game {
                     [0.0, CELL_W * i as f64],
                     [SCREEN_W, CELL_W * i as f64],
                     c.transform,
-                    gl,
+                    g,
                 );
             }
 
-            // Render current score
             text(
                 [0.0, 1.0, 0.0, 0.5],
                 font_size,
-                snake.nodes.len().to_string().as_str(),
-                &mut *glyphs,
+                score.to_string().as_str(),
+                glyphs,
                 c.transform
                     .trans(text_padding, font_size as f64 + text_padding),
-                gl,
+                g,
             )
             .unwrap();
 
@@ -129,6 +138,7 @@ impl Game {
     }
 
     pub fn update(&mut self, _args: &UpdateArgs) {
+
         // Update the snakes location
         match self.snake.direction {
             Direction::Up => self.snake.update_node_locations(0.0, -1.0),
@@ -138,13 +148,15 @@ impl Game {
         };
 
         // Check if the snake did bite itself
+        let mut game_over = false;
         let mut snake_nodes_iter = self.snake.nodes.iter();
         let head = snake_nodes_iter.next().unwrap().clone();
 
         while let Some(node) = snake_nodes_iter.next() {
             if head.x == node.x && head.y == node.y {
                 // Bit itself...
-                self.game_over();
+                game_over = true;
+                break;
             }
         }
 
@@ -154,20 +166,49 @@ impl Game {
         while let Some(node) = obstacles_iter.next() {
             if head.x == node.x && head.y == node.y {
                 // Hit an obstacle
-                self.game_over();
+                game_over = true;
+                break;
             }
+        }
+
+        if game_over {
+            self.game_over();
         }
 
         // Check if the snake has eaten the food
         if head.x == self.food.x && head.y == self.food.y {
             // Just push back a new random node
             // it will be updated automatically
+            self.score += 1;
             self.snake.nodes.push_back(Node { x: -1.0, y: -1.0 });
             self.place_random_food();
         }
     }
 
     pub fn handle_input(&mut self, key: &Key) {
+
+        
+        if !self.snake.is_alive {
+            if *key == Key::Space {
+                // Create the snake
+                let mut nodes: LinkedList<Node> = LinkedList::new();
+                nodes.push_back(Node { x: 10.0, y: 10.0 });
+                nodes.push_back(Node { x: 11.0, y: 10.0 });
+                nodes.push_back(Node { x: 12.0, y: 10.0 });
+
+                let direction = Direction::Left;
+                let snake = Snake { nodes, direction, is_alive: true };
+                self.score = 0;
+                self.snake = snake;
+                self.obstacles = LinkedList::new();
+
+                self.place_random_obstacles(10);
+                self.place_random_food();
+            }
+        }
+
+
+
         let mut nodes_iter = self.snake.nodes.iter();
         let head = nodes_iter.next().unwrap();
         let second = nodes_iter.next().unwrap();
@@ -267,7 +308,105 @@ impl Game {
         }
     }
 
-    fn game_over(&self){
-        println!("Game over...");
+    fn game_over(&mut self) {
+        if self.score > self.high_score {
+            self.high_score = self.score;
+        }
+
+        self.snake.is_alive = false;
     }
+}
+
+fn render_text_center(
+    color: types::Color,
+    font_size: types::FontSize,
+    text_content: &str,
+    glyphs: &mut Glyphs,
+    y: f64,
+    c: Context,
+    g: &mut G2d,
+) {
+    let text_width = glyphs.width(font_size, text_content).unwrap();
+    let text_x = (SCREEN_W - text_width) / 2.0;
+
+    text(
+        color,
+        font_size,
+        text_content,
+        glyphs,
+        c.transform.trans(text_x, y),
+        g,
+    )
+    .unwrap();
+}
+
+fn render_game_over(c: Context, g: &mut G2d, glyphs: &mut Glyphs, score: u16, high_score: u16) {
+    let font_size: u32 = 32;
+    let pop_up_offset = 50.0;
+    let game_over_font_size: u32 = 48;
+
+    // Pop-up square
+    rectangle(
+        [0.0, 0.0, 0.0, 0.1],
+        [
+            pop_up_offset,
+            pop_up_offset,
+            SCREEN_W - 2.0 * pop_up_offset,
+            SCREEN_H - 2.0 * pop_up_offset,
+        ],
+        c.transform,
+        g,
+    );
+
+    // Game over text
+    render_text_center(
+        [0.7, 0.0, 0.12, 1.0],
+        game_over_font_size,
+        "Game Over",
+        glyphs,
+        120.0,
+        c,
+        g,
+    );
+
+    // Render current score
+    let mut current_score_text = String::new();
+    current_score_text.push_str("Score: ");
+    current_score_text.push_str(score.to_string().as_str());
+
+    render_text_center(
+        [0.0, 1.0, 0.0, 0.5],
+        font_size,
+        current_score_text.as_str(),
+        glyphs,
+        200.0,
+        c,
+        g,
+    );
+
+    // Render high score
+    let mut high_score_text = String::new();
+    high_score_text.push_str("High Score: ");
+    high_score_text.push_str(high_score.to_string().as_str());
+
+    render_text_center(
+        [0.0, 1.0, 0.0, 0.5],
+        font_size,
+        high_score_text.as_str(),
+        glyphs,
+        280.0,
+        c,
+        g,
+    );
+
+    // Render info
+    render_text_center(
+        [0.7, 0.0, 0.12, 1.0],
+        font_size / 2.0 as u32,
+        "Press space to restart!",
+        glyphs,
+        360.0,
+        c,
+        g,
+    );
 }

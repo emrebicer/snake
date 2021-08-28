@@ -37,7 +37,7 @@ fn main() {
 
     let direction = Direction::Left;
     let food = Node { x: -1.0, y: -1.0 };
-    let snake = Snake { nodes, direction };
+    let snake = Snake { nodes, direction, is_alive: true };
 
     // Create a new game and run it.
     let mut game = Game {
@@ -45,6 +45,7 @@ fn main() {
         snake,
         food,
         obstacles,
+        score: 0,
         high_score: 0,
     };
 
