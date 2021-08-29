@@ -19,13 +19,13 @@ fn main() {
         .build()
         .unwrap();
 
-    // Load the glyph
-    let assets = find_folder::Search::ParentsThenKids(3, 3)
-        .for_folder("assets")
-        .unwrap();
-    let mut glyphs = window
-        .load_font(assets.join("PlaymegamesReguler-2OOee.ttf"))
-        .unwrap();
+    let font = include_bytes!("../assets/PlaymegamesReguler-2OOee.ttf");
+    let mut glyphs = Glyphs::from_bytes(
+        font,
+        window.create_texture_context(),
+        TextureSettings::new(),
+    )
+    .unwrap();
 
     // Create the snake
     let mut nodes: LinkedList<Node> = LinkedList::new();
