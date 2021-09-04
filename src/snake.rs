@@ -6,7 +6,10 @@ use std::collections::LinkedList;
 pub struct Snake {
     pub nodes: LinkedList<Node>,
     pub direction: Direction,
-    pub is_alive: bool
+    pub is_alive: bool,
+    pub is_turbo: bool,
+    pub movement_delay: f64, // in ms
+    pub last_movement_duration: f64 // in ms
 }
 
 #[derive(Clone, Debug)]

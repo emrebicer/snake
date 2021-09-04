@@ -137,57 +137,72 @@ impl Game {
         });
     }
 
-    pub fn update(&mut self, _args: &UpdateArgs) {
+    pub fn update(&mut self, args: &UpdateArgs) {
+        let dt_ms = args.dt * 1000.0;
+        self.snake.last_movement_duration += dt_ms;
 
-        // Update the snakes location
-        match self.snake.direction {
-            Direction::Up => self.snake.update_node_locations(0.0, -1.0),
-            Direction::Down => self.snake.update_node_locations(0.0, 1.0),
-            Direction::Right => self.snake.update_node_locations(1.0, 0.0),
-            Direction::Left => self.snake.update_node_locations(-1.0, 0.0),
-        };
+        let mut delay = self.snake.movement_delay;
+        if self.snake.is_turbo {
+            delay /= 2.0;
+        }
 
-        // Check if the snake did bite itself
-        let mut game_over = false;
-        let mut snake_nodes_iter = self.snake.nodes.iter();
-        let head = snake_nodes_iter.next().unwrap().clone();
+        if self.snake.last_movement_duration > delay {
+            self.snake.last_movement_duration = 0.0;
 
-        while let Some(node) = snake_nodes_iter.next() {
-            if head.x == node.x && head.y == node.y {
-                // Bit itself...
-                game_over = true;
-                break;
+            if self.snake.is_alive {
+                // Update the snakes location
+                match self.snake.direction {
+                    Direction::Up => self.snake.update_node_locations(0.0, -1.0),
+                    Direction::Down => self.snake.update_node_locations(0.0, 1.0),
+                    Direction::Right => self.snake.update_node_locations(1.0, 0.0),
+                    Direction::Left => self.snake.update_node_locations(-1.0, 0.0),
+                };
+
+                // Check if the snake did bite itself
+                let mut game_over = false;
+                let mut snake_nodes_iter = self.snake.nodes.iter();
+                let head = snake_nodes_iter.next().unwrap().clone();
+
+                while let Some(node) = snake_nodes_iter.next() {
+                    if head.x == node.x && head.y == node.y {
+                        // Bit itself...
+                        game_over = true;
+                        break;
+                    }
+                }
+
+                // Check if the snake hit an obstacle
+                let mut obstacles_iter = self.obstacles.iter();
+
+                while let Some(node) = obstacles_iter.next() {
+                    if head.x == node.x && head.y == node.y {
+                        // Hit an obstacle
+                        game_over = true;
+                        break;
+                    }
+                }
+
+                if game_over {
+                    self.game_over();
+                }
+
+                // Check if the snake has eaten the food
+                if head.x == self.food.x && head.y == self.food.y {
+                    // Just push back a new random node
+                    // it will be updated automatically
+                    if self.snake.is_turbo {
+                        self.score += 2;
+                    } else {
+                        self.score += 1;
+                    }
+                    self.snake.nodes.push_back(Node { x: -1.0, y: -1.0 });
+                    self.place_random_food();
+                }
             }
-        }
-
-        // Check if the snake hit an obstacle
-        let mut obstacles_iter = self.obstacles.iter();
-
-        while let Some(node) = obstacles_iter.next() {
-            if head.x == node.x && head.y == node.y {
-                // Hit an obstacle
-                game_over = true;
-                break;
-            }
-        }
-
-        if game_over {
-            self.game_over();
-        }
-
-        // Check if the snake has eaten the food
-        if head.x == self.food.x && head.y == self.food.y {
-            // Just push back a new random node
-            // it will be updated automatically
-            self.score += 1;
-            self.snake.nodes.push_back(Node { x: -1.0, y: -1.0 });
-            self.place_random_food();
         }
     }
 
-    pub fn handle_input(&mut self, key: &Key) {
-
-        
+    pub fn handle_key_press(&mut self, key: &Key) {
         if !self.snake.is_alive {
             if *key == Key::Space {
                 // Create the snake
@@ -197,7 +212,14 @@ impl Game {
                 nodes.push_back(Node { x: 12.0, y: 10.0 });
 
                 let direction = Direction::Left;
-                let snake = Snake { nodes, direction, is_alive: true };
+                let snake = Snake {
+                    nodes,
+                    direction,
+                    is_alive: true,
+                    is_turbo: false,
+                    movement_delay: 80.0,
+                    last_movement_duration: 0.0,
+                };
                 self.score = 0;
                 self.snake = snake;
                 self.obstacles = LinkedList::new();
@@ -205,51 +227,64 @@ impl Game {
                 self.place_random_obstacles(10);
                 self.place_random_food();
             }
+        } else {
+
+            // Check for the turbo key
+            if *key == Key::LShift {
+                self.snake.is_turbo = true;
+            }
+
+            let mut nodes_iter = self.snake.nodes.iter();
+            let head = nodes_iter.next().unwrap();
+            let second = nodes_iter.next().unwrap();
+
+            if *key == Key::Up || *key == Key::W {
+                match self.snake.direction {
+                    Direction::Down => {}
+                    _ => {
+                        if head.y != second.y + 1 as f64 {
+                            self.snake.direction = Direction::Up
+                        }
+                    }
+                }
+            } else if *key == Key::Down || *key == Key::S {
+                match self.snake.direction {
+                    Direction::Up => {}
+                    _ => {
+                        if head.y != second.y - 1 as f64 {
+                            self.snake.direction = Direction::Down
+                        }
+                    }
+                }
+            } else if *key == Key::Right || *key == Key::D {
+                match self.snake.direction {
+                    Direction::Left => {}
+                    _ => {
+                        if head.x != second.x - 1 as f64 {
+                            self.snake.direction = Direction::Right
+                        }
+                    }
+                }
+            } else if *key == Key::Left || *key == Key::A {
+                match self.snake.direction {
+                    Direction::Right => {}
+                    _ => {
+                        if head.x != second.x + 1 as f64 {
+                            self.snake.direction = Direction::Left
+                        }
+                    }
+                }
+            };
         }
+    }
 
+    pub fn handle_key_release(&mut self, key: &Key) {
+        if self.snake.is_alive {
 
-
-        let mut nodes_iter = self.snake.nodes.iter();
-        let head = nodes_iter.next().unwrap();
-        let second = nodes_iter.next().unwrap();
-
-        if *key == Key::Up || *key == Key::W {
-            match self.snake.direction {
-                Direction::Down => {}
-                _ => {
-                    if head.y != second.y + 1 as f64 {
-                        self.snake.direction = Direction::Up
-                    }
-                }
+            if *key == Key::LShift {
+                self.snake.is_turbo = false;
             }
-        } else if *key == Key::Down || *key == Key::S {
-            match self.snake.direction {
-                Direction::Up => {}
-                _ => {
-                    if head.y != second.y - 1 as f64 {
-                        self.snake.direction = Direction::Down
-                    }
-                }
-            }
-        } else if *key == Key::Right || *key == Key::D {
-            match self.snake.direction {
-                Direction::Left => {}
-                _ => {
-                    if head.x != second.x - 1 as f64 {
-                        self.snake.direction = Direction::Right
-                    }
-                }
-            }
-        } else if *key == Key::Left || *key == Key::A {
-            match self.snake.direction {
-                Direction::Right => {}
-                _ => {
-                    if head.x != second.x + 1 as f64 {
-                        self.snake.direction = Direction::Left
-                    }
-                }
-            }
-        };
+        } 
     }
 
     pub fn place_random_obstacles(&mut self, count: i32) {

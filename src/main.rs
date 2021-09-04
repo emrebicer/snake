@@ -1,16 +1,15 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod config;
-mod snake;
 mod game;
+mod snake;
 
 use config::*;
-use game::*;
 use game::snake::*;
+use game::*;
 use piston::event_loop::{EventSettings, Events};
 use piston::input::{Button, PressEvent, RenderEvent, UpdateEvent};
 use piston_window::*;
 use std::collections::LinkedList;
-
 
 fn main() {
     let mut window: PistonWindow = WindowSettings::new("Snake", [SCREEN_W, SCREEN_H])
@@ -38,7 +37,14 @@ fn main() {
 
     let direction = Direction::Left;
     let food = Node { x: -1.0, y: -1.0 };
-    let snake = Snake { nodes, direction, is_alive: true };
+    let snake = Snake {
+        nodes,
+        direction,
+        is_alive: true,
+        is_turbo: false,
+        movement_delay: 80.0,
+        last_movement_duration: 0.0,
+    };
 
     // Create a new game and run it.
     let mut game = Game {
@@ -53,8 +59,7 @@ fn main() {
     game.place_random_food();
     game.place_random_obstacles(10);
 
-    let mut event_settings = EventSettings::new();
-    event_settings.ups = 16;
+    let event_settings = EventSettings::new();
     let mut events = Events::new(event_settings);
     while let Some(e) = events.next(&mut game.window) {
         if let Some(args) = e.render_args() {
@@ -66,7 +71,11 @@ fn main() {
         }
 
         if let Some(Button::Keyboard(key)) = e.press_args() {
-            game.handle_input(&key)
+            game.handle_key_press(&key)
+        };
+
+        if let Some(Button::Keyboard(key)) = e.release_args() {
+            game.handle_key_release(&key)
         };
     }
 }
