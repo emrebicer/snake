@@ -3,16 +3,17 @@ mod config;
 mod game;
 mod snake;
 
-use config::*;
-use game::snake::*;
-use game::*;
+use game::Game;
 use piston::event_loop::{EventSettings, Events};
-use piston::input::{Button, PressEvent, RenderEvent, UpdateEvent};
-use piston_window::*;
+use piston::input::{Button, PressEvent, ReleaseEvent, RenderEvent, UpdateEvent};
+use piston_window::{Glyphs, PistonWindow, TextureSettings, WindowSettings};
+use snake::{Direction, Node, Snake};
 use std::collections::LinkedList;
 
 fn main() {
-    let mut window: PistonWindow = WindowSettings::new("Snake", [SCREEN_W, SCREEN_H])
+    let config = config::new();
+
+    let mut window: PistonWindow = WindowSettings::new("Snake", [config.screen_w, config.screen_h])
         .exit_on_esc(true)
         .resizable(false)
         .build()
@@ -48,6 +49,7 @@ fn main() {
 
     // Create a new game and run it.
     let mut game = Game {
+        config,
         window,
         snake,
         food,

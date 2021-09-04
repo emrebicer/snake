@@ -1,5 +1,4 @@
-#[path = "config.rs"] mod config;
-use config::*;
+use crate::config::Config;
 use std::collections::LinkedList;
 
 #[allow(dead_code)]
@@ -28,12 +27,10 @@ pub enum Direction {
 
 impl Snake {
     #[allow(dead_code)]
-    pub fn update_node_locations(self: &mut Snake, x_change: f64, y_change: f64) {
+    pub fn update_node_locations(self: &mut Snake, x_change: f64, y_change: f64, config: Config) {
 
         let mut clone_nodes = self.nodes.clone();
-
         let mut iter = clone_nodes.iter_mut();
-
         let mut prev = iter.next().unwrap().clone();
 
         while let Some(current) = iter.next() {
@@ -50,14 +47,14 @@ impl Snake {
         head.y += y_change;
 
         if head.x == -1.0 {
-            head.x = (SCREEN_W / CELL_W) - 1.0;
-        } else if head.x == SCREEN_W / CELL_W {
+            head.x = (config.screen_w / config.cell_w) - 1.0;
+        } else if head.x == config.screen_w / config.cell_w {
             head.x = 0.0;
         }
 
         if head.y == -1.0 {
-            head.y = (SCREEN_H / CELL_W) - 1.0;
-        } else if head.y == SCREEN_H / CELL_W {
+            head.y = (config.screen_h / config.cell_w) - 1.0;
+        } else if head.y == config.screen_h / config.cell_w {
             head.y = 0.0;
         }
 

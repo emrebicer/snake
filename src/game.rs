@@ -1,17 +1,13 @@
-#[path = "config.rs"]
-mod config;
-#[path = "snake.rs"]
-pub mod snake;
-
-use config::*;
+use crate::config::Config;
+use crate::snake::{Direction, Node, Snake};
 use piston::input::{Key, RenderArgs, UpdateArgs};
 use piston_window::*;
 use rand::thread_rng;
 use rand::Rng;
-use snake::*;
 use std::collections::LinkedList;
 
 pub struct Game {
+    pub config: Config,
     pub window: PistonWindow,
     pub snake: Snake,
     pub food: Node,
@@ -22,8 +18,6 @@ pub struct Game {
 
 impl Game {
     pub fn render(&mut self, _args: &RenderArgs, event: &Event, glyphs: &mut Glyphs) {
-        const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-        const YELLOW: [f32; 4] = [1.0, 1.0, 0.0, 1.0];
         const SEPERATOR_LINE_RADIUS: f64 = 0.5;
 
         let snake = &self.snake;
@@ -33,24 +27,30 @@ impl Game {
         let text_padding: f64 = 10.0;
         let score = &self.score;
         let high_score = &self.high_score;
+        let config = &self.config;
 
         self.window.draw_2d(event, |c, g, device| {
             // Check if the snake is dead
             if !snake.is_alive {
-                render_game_over(c, g, glyphs, *score, *high_score);
+                render_game_over(c, g, glyphs, *score, *high_score, *config);
                 glyphs.factory.encoder.flush(device);
                 return;
             }
 
             // Clear the screen
             clear([0.42, 0.0, 0.5, 1.0], g);
-            let num_of_cells_horizontal = (SCREEN_W / CELL_W) as i32;
-            let num_of_cells_vertical = (SCREEN_H / CELL_W) as i32;
+            let num_of_cells_horizontal = (config.screen_w / config.cell_w) as i32;
+            let num_of_cells_vertical = (config.screen_h / config.cell_w) as i32;
 
             // Draw the food
             rectangle(
-                YELLOW,
-                [CELL_W * food.x, CELL_W * food.y, CELL_W, CELL_W],
+                config.food_color,
+                [
+                    config.cell_w * food.x,
+                    config.cell_w * food.y,
+                    config.cell_w,
+                    config.cell_w,
+                ],
                 c.transform,
                 g,
             );
@@ -66,7 +66,12 @@ impl Game {
                         1.0 - color_multiplier * node_index,
                         1.0,
                     ],
-                    [CELL_W * node.x, CELL_W * node.y, CELL_W, CELL_W],
+                    [
+                        config.cell_w * node.x,
+                        config.cell_w * node.y,
+                        config.cell_w,
+                        config.cell_w,
+                    ],
                     c.transform,
                     g,
                 );
@@ -76,12 +81,12 @@ impl Game {
 
             // Redraw the head in a different color
             rectangle(
-                BLACK,
+                config.snake_head_color,
                 [
-                    CELL_W * snake.nodes.front().unwrap().x,
-                    CELL_W * snake.nodes.front().unwrap().y,
-                    CELL_W,
-                    CELL_W,
+                    config.cell_w * snake.nodes.front().unwrap().x,
+                    config.cell_w * snake.nodes.front().unwrap().y,
+                    config.cell_w,
+                    config.cell_w,
                 ],
                 c.transform,
                 g,
@@ -91,7 +96,12 @@ impl Game {
             for obstacle in obstacles.iter() {
                 rectangle(
                     [1.0, 0.0, 0.5, 1.0],
-                    [CELL_W * obstacle.x, CELL_W * obstacle.y, CELL_W, CELL_W],
+                    [
+                        config.cell_w * obstacle.x,
+                        config.cell_w * obstacle.y,
+                        config.cell_w,
+                        config.cell_w,
+                    ],
                     c.transform,
                     g,
                 );
@@ -102,10 +112,10 @@ impl Game {
             // Draw the seperator lines
             for i in 1..num_of_cells_horizontal {
                 line_from_to(
-                    BLACK,
+                    config.seperator_line_color,
                     SEPERATOR_LINE_RADIUS,
-                    [CELL_W * i as f64, 0.0],
-                    [CELL_W * i as f64, SCREEN_H],
+                    [config.cell_w * i as f64, 0.0],
+                    [config.cell_w * i as f64, config.screen_h],
                     c.transform,
                     g,
                 );
@@ -113,10 +123,10 @@ impl Game {
 
             for i in 1..num_of_cells_vertical {
                 line_from_to(
-                    BLACK,
+                    config.seperator_line_color,
                     SEPERATOR_LINE_RADIUS,
-                    [0.0, CELL_W * i as f64],
-                    [SCREEN_W, CELL_W * i as f64],
+                    [0.0, config.cell_w * i as f64],
+                    [config.screen_w, config.cell_w * i as f64],
                     c.transform,
                     g,
                 );
@@ -152,10 +162,10 @@ impl Game {
             if self.snake.is_alive {
                 // Update the snakes location
                 match self.snake.direction {
-                    Direction::Up => self.snake.update_node_locations(0.0, -1.0),
-                    Direction::Down => self.snake.update_node_locations(0.0, 1.0),
-                    Direction::Right => self.snake.update_node_locations(1.0, 0.0),
-                    Direction::Left => self.snake.update_node_locations(-1.0, 0.0),
+                    Direction::Up => self.snake.update_node_locations(0.0, -1.0, self.config),
+                    Direction::Down => self.snake.update_node_locations(0.0, 1.0, self.config),
+                    Direction::Right => self.snake.update_node_locations(1.0, 0.0, self.config),
+                    Direction::Left => self.snake.update_node_locations(-1.0, 0.0, self.config),
                 };
 
                 // Check if the snake did bite itself
@@ -228,7 +238,6 @@ impl Game {
                 self.place_random_food();
             }
         } else {
-
             // Check for the turbo key
             if *key == Key::LShift {
                 self.snake.is_turbo = true;
@@ -280,11 +289,10 @@ impl Game {
 
     pub fn handle_key_release(&mut self, key: &Key) {
         if self.snake.is_alive {
-
             if *key == Key::LShift {
                 self.snake.is_turbo = false;
             }
-        } 
+        }
     }
 
     pub fn place_random_obstacles(&mut self, count: i32) {
@@ -304,8 +312,8 @@ impl Game {
     }
 
     fn find_random_available_node(&self) -> (f64, f64) {
-        let x_len = SCREEN_W / CELL_W;
-        let y_len = SCREEN_H / CELL_W;
+        let x_len = self.config.screen_w / self.config.cell_w;
+        let y_len = self.config.screen_h / self.config.cell_w;
 
         let mut rng = thread_rng();
         loop {
@@ -360,9 +368,10 @@ fn render_text_center(
     y: f64,
     c: Context,
     g: &mut G2d,
+    config: &Config,
 ) {
     let text_width = glyphs.width(font_size, text_content).unwrap();
-    let text_x = (SCREEN_W - text_width) / 2.0;
+    let text_x = (config.screen_w - text_width) / 2.0;
 
     text(
         color,
@@ -375,7 +384,14 @@ fn render_text_center(
     .unwrap();
 }
 
-fn render_game_over(c: Context, g: &mut G2d, glyphs: &mut Glyphs, score: u16, high_score: u16) {
+fn render_game_over(
+    c: Context,
+    g: &mut G2d,
+    glyphs: &mut Glyphs,
+    score: u16,
+    high_score: u16,
+    config: Config,
+) {
     let font_size: u32 = 32;
     let pop_up_offset = 50.0;
     let game_over_font_size: u32 = 48;
@@ -386,8 +402,8 @@ fn render_game_over(c: Context, g: &mut G2d, glyphs: &mut Glyphs, score: u16, hi
         [
             pop_up_offset,
             pop_up_offset,
-            SCREEN_W - 2.0 * pop_up_offset,
-            SCREEN_H - 2.0 * pop_up_offset,
+            config.screen_w - 2.0 * pop_up_offset,
+            config.screen_h - 2.0 * pop_up_offset,
         ],
         c.transform,
         g,
@@ -402,6 +418,7 @@ fn render_game_over(c: Context, g: &mut G2d, glyphs: &mut Glyphs, score: u16, hi
         120.0,
         c,
         g,
+        &config,
     );
 
     // Render current score
@@ -417,6 +434,7 @@ fn render_game_over(c: Context, g: &mut G2d, glyphs: &mut Glyphs, score: u16, hi
         200.0,
         c,
         g,
+        &config,
     );
 
     // Render high score
@@ -432,6 +450,7 @@ fn render_game_over(c: Context, g: &mut G2d, glyphs: &mut Glyphs, score: u16, hi
         280.0,
         c,
         g,
+        &config,
     );
 
     // Render info
@@ -443,5 +462,6 @@ fn render_game_over(c: Context, g: &mut G2d, glyphs: &mut Glyphs, score: u16, hi
         360.0,
         c,
         g,
+        &config,
     );
 }
