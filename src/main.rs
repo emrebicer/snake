@@ -11,7 +11,7 @@ use snake::{Direction, Node, Snake};
 use std::collections::LinkedList;
 
 fn main() {
-    let config = config::new();
+    let config = config::load_config_file();
 
     let mut window: PistonWindow = WindowSettings::new("Snake", [config.screen_w, config.screen_h])
         .exit_on_esc(true)
@@ -59,7 +59,7 @@ fn main() {
     };
 
     game.place_random_food();
-    game.place_random_obstacles(10);
+    game.place_random_obstacles(config.random_obstacle_count);
 
     let event_settings = EventSettings::new();
     let mut events = Events::new(event_settings);

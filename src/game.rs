@@ -38,7 +38,7 @@ impl Game {
             }
 
             // Clear the screen
-            clear([0.42, 0.0, 0.5, 1.0], g);
+            clear(config.background_color, g);
             let num_of_cells_horizontal = (config.screen_w / config.cell_w) as i32;
             let num_of_cells_vertical = (config.screen_h / config.cell_w) as i32;
 
@@ -56,15 +56,18 @@ impl Game {
             );
 
             // Draw the snake
-            let color_multiplier = 1.0 / snake.nodes.len() as f32;
-            let mut node_index = 0.0;
+            let mut node_index = 1.0;
             for node in snake.nodes.iter().rev() {
                 rectangle(
                     [
-                        color_multiplier * node_index,
-                        1.0 - color_multiplier * node_index,
-                        1.0 - color_multiplier * node_index,
-                        1.0,
+                        lerp(*config.snake_second_color.get(0).unwrap(),
+                            *config.snake_first_color.get(0).unwrap(), snake.nodes.len(), node_index),
+                        lerp(*config.snake_second_color.get(1).unwrap(),
+                            *config.snake_first_color.get(1).unwrap(), snake.nodes.len(), node_index),
+                        lerp(*config.snake_second_color.get(2).unwrap(),
+                            *config.snake_first_color.get(2).unwrap(), snake.nodes.len(), node_index),
+                        lerp(*config.snake_second_color.get(3).unwrap(),
+                            *config.snake_first_color.get(3).unwrap(), snake.nodes.len(), node_index)
                     ],
                     [
                         config.cell_w * node.x,
@@ -95,7 +98,7 @@ impl Game {
             // Draw the obstacles
             for obstacle in obstacles.iter() {
                 rectangle(
-                    [1.0, 0.0, 0.5, 1.0],
+                    config.obstacle_color,
                     [
                         config.cell_w * obstacle.x,
                         config.cell_w * obstacle.y,
@@ -133,7 +136,7 @@ impl Game {
             }
 
             text(
-                [0.0, 1.0, 0.0, 0.5],
+                config.snake_first_color,
                 font_size,
                 score.to_string().as_str(),
                 glyphs,
@@ -234,7 +237,7 @@ impl Game {
                 self.snake = snake;
                 self.obstacles = LinkedList::new();
 
-                self.place_random_obstacles(10);
+                self.place_random_obstacles(self.config.random_obstacle_count);
                 self.place_random_food();
             }
         } else {
@@ -295,7 +298,7 @@ impl Game {
         }
     }
 
-    pub fn place_random_obstacles(&mut self, count: i32) {
+    pub fn place_random_obstacles(&mut self, count: u32) {
         for _ in 0..count {
             let (rand_x, rand_y) = self.find_random_available_node();
             self.obstacles.push_back(Node {
@@ -411,7 +414,7 @@ fn render_game_over(
 
     // Game over text
     render_text_center(
-        [0.7, 0.0, 0.12, 1.0],
+        config.snake_first_color,
         game_over_font_size,
         "Game Over",
         glyphs,
@@ -427,7 +430,7 @@ fn render_game_over(
     current_score_text.push_str(score.to_string().as_str());
 
     render_text_center(
-        [0.0, 1.0, 0.0, 0.5],
+        config.food_color,
         font_size,
         current_score_text.as_str(),
         glyphs,
@@ -443,7 +446,7 @@ fn render_game_over(
     high_score_text.push_str(high_score.to_string().as_str());
 
     render_text_center(
-        [0.0, 1.0, 0.0, 0.5],
+        config.food_color,
         font_size,
         high_score_text.as_str(),
         glyphs,
@@ -455,8 +458,8 @@ fn render_game_over(
 
     // Render info
     render_text_center(
-        [0.7, 0.0, 0.12, 1.0],
-        font_size / 2.0 as u32,
+        config.snake_first_color,
+        24 as u32,
         "Press space to restart!",
         glyphs,
         360.0,
@@ -464,4 +467,16 @@ fn render_game_over(
         g,
         &config,
     );
+}
+
+
+fn lerp(from: f32, to: f32, step_count: usize, current_step: f32) -> f32{
+    let should_increment = to > from;
+    let current_addition = (f32::abs(from - to) / step_count as f32) * current_step as f32;
+
+    if should_increment {
+        return from + current_addition;
+    } else {
+        return from - current_addition;
+    }
 }
