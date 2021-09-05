@@ -12,6 +12,8 @@ pub struct Config {
     pub snake_head_color: [f32; 4],
     pub snake_first_color: [f32; 4],
     pub snake_second_color: [f32; 4],
+    pub snake_turbo_first_color: [f32; 4],
+    pub snake_turbo_second_color: [f32; 4],
     pub obstacle_color: [f32; 4],
     pub food_color: [f32; 4],
 }
@@ -28,6 +30,8 @@ pub fn new() -> Config {
         snake_head_color: [0.0, 0.0, 0.0, 1.0],
         snake_first_color: [123.0 / 255.0, 44.0 / 255.0, 191.0 / 255.0, 1.0],
         snake_second_color: [224.0 / 225.0, 170.0 / 255.0, 1.0, 1.0],
+        snake_turbo_first_color: [13.0 / 255.0, 71.0 / 255.0, 161.0 / 255.0, 1.0],
+        snake_turbo_second_color: [100.0 / 225.0, 181.0 / 255.0, 246.0 / 255.0, 1.0],
         obstacle_color: [16.0 / 255.0, 0.0, 43.0 / 255.0, 1.0],
         food_color: [199.0 / 255.0, 125.0 / 255.0, 1.0, 1.0]
     }
@@ -93,6 +97,18 @@ pub fn load_config_file() -> Config {
         if let Some(value) = json.get("snake_second_color") {
             if let serde_json::Value::Array(snake_second_color) = value {
                 config.snake_second_color = vec_to_arr(snake_second_color);
+            }
+        }
+
+        if let Some(value) = json.get("snake_turbo_first_color") {
+            if let serde_json::Value::Array(snake_turbo_first_color) = value {
+                config.snake_turbo_first_color = vec_to_arr(snake_turbo_first_color);
+            }
+        }
+
+        if let Some(value) = json.get("snake_turbo_second_color") {
+            if let serde_json::Value::Array(snake_turbo_second_color) = value {
+                config.snake_turbo_second_color = vec_to_arr(snake_turbo_second_color);
             }
         }
 

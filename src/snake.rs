@@ -1,7 +1,6 @@
 use crate::config::Config;
 use std::collections::LinkedList;
 
-#[allow(dead_code)]
 pub struct Snake {
     pub nodes: LinkedList<Node>,
     pub direction: Direction,
@@ -17,7 +16,6 @@ pub struct Node {
     pub y: f64,
 }
 
-#[allow(dead_code)]
 pub enum Direction {
     Up,
     Down,
@@ -26,7 +24,6 @@ pub enum Direction {
 }
 
 impl Snake {
-    #[allow(dead_code)]
     pub fn update_node_locations(self: &mut Snake, x_change: f64, y_change: f64, config: Config) {
 
         let mut clone_nodes = self.nodes.clone();

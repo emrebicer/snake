@@ -57,17 +57,25 @@ impl Game {
 
             // Draw the snake
             let mut node_index = 1.0;
+            let mut snake_first_color = config.snake_first_color;
+            let mut snake_second_color = config.snake_second_color;
+
+            if snake.is_turbo {
+                snake_first_color = config.snake_turbo_first_color;
+                snake_second_color = config.snake_turbo_second_color;
+            }
+
             for node in snake.nodes.iter().rev() {
                 rectangle(
                     [
-                        lerp(*config.snake_second_color.get(0).unwrap(),
-                            *config.snake_first_color.get(0).unwrap(), snake.nodes.len(), node_index),
-                        lerp(*config.snake_second_color.get(1).unwrap(),
-                            *config.snake_first_color.get(1).unwrap(), snake.nodes.len(), node_index),
-                        lerp(*config.snake_second_color.get(2).unwrap(),
-                            *config.snake_first_color.get(2).unwrap(), snake.nodes.len(), node_index),
-                        lerp(*config.snake_second_color.get(3).unwrap(),
-                            *config.snake_first_color.get(3).unwrap(), snake.nodes.len(), node_index)
+                        lerp(*snake_second_color.get(0).unwrap(),
+                            *snake_first_color.get(0).unwrap(), snake.nodes.len(), node_index),
+                        lerp(*snake_second_color.get(1).unwrap(),
+                            *snake_first_color.get(1).unwrap(), snake.nodes.len(), node_index),
+                        lerp(*snake_second_color.get(2).unwrap(),
+                            *snake_first_color.get(2).unwrap(), snake.nodes.len(), node_index),
+                        lerp(*snake_second_color.get(3).unwrap(),
+                            *snake_first_color.get(3).unwrap(), snake.nodes.len(), node_index)
                     ],
                     [
                         config.cell_w * node.x,
