@@ -1,5 +1,6 @@
 use serde_json;
 use std::fs::read_to_string;
+use std::env::current_exe;
 
 #[derive(Clone, Debug, Copy)]
 pub struct Config {
@@ -40,8 +41,10 @@ pub fn new() -> Config {
 pub fn load_config_file() -> Config {
     let mut config = new();
 
-    if let Ok(file_content) = read_to_string("./snake_config.json") {
-        
+    let mut config_path = current_exe().unwrap();
+    config_path.pop();
+    config_path.push("snake_config.json");
+    if let Ok(file_content) = read_to_string(config_path) {
 
         let json: serde_json::Value =
             serde_json::from_str(file_content.as_str()).expect("JSON was not well-formatted");
@@ -123,7 +126,7 @@ pub fn load_config_file() -> Config {
                 config.food_color = vec_to_arr(food_color);
             }
         }
-    } 
+    }
     
     config
 }
