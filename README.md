@@ -12,7 +12,7 @@ cargo build --release # to compile
 ```
 
 ## Customizing the game
-When the game is started, it looks for a snake_config.json file at the same location as executable for custom configuration. If that files does not exists or some keys are not found in the config file, the default values will be use.
+When the game is started, it looks for a ***snake_config.json*** file at the same location as executable for custom configuration. If that file does not exist or some key/value pairs are not found in the config file, the default values will be used.
 
 ### Default configuration is as following;
 ```json
