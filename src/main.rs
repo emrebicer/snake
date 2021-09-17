@@ -28,19 +28,9 @@ fn main() {
     .unwrap();
 
     // Create the snake
-    let mut nodes: LinkedList<Node> = LinkedList::new();
-    nodes.push_back(Node { x: 10.0, y: 10.0 });
-    nodes.push_back(Node { x: 11.0, y: 10.0 });
-    nodes.push_back(Node { x: 12.0, y: 10.0 });
-
-    // Create obstacles
-    let obstacles: LinkedList<Node> = LinkedList::new();
-
-    let direction = Direction::Left;
-    let food = Node { x: -1.0, y: -1.0 };
     let snake = Snake {
-        nodes,
-        direction,
+        nodes: LinkedList::new(),
+        direction: Direction::Left,
         is_alive: true,
         is_turbo: false,
         movement_delay: 80.0,
@@ -52,14 +42,14 @@ fn main() {
         config,
         window,
         snake,
-        food,
-        obstacles,
+        food: Node { x: -1.0, y: -1.0 },
+        obstacles: LinkedList::new(),
         score: 0,
         high_score: 0,
+        direction_queue: vec![Direction::Up; 0],
     };
 
-    game.place_random_food();
-    game.place_random_obstacles(config.random_obstacle_count);
+    game.reset_game();
 
     let event_settings = EventSettings::new();
     let mut events = Events::new(event_settings);

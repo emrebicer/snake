@@ -16,6 +16,7 @@ pub struct Node {
     pub y: f64,
 }
 
+#[derive(Clone, Debug)]
 pub enum Direction {
     Up,
     Down,

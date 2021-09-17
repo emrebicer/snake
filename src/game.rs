@@ -14,6 +14,7 @@ pub struct Game {
     pub obstacles: LinkedList<Node>,
     pub score: u16,
     pub high_score: u16,
+    pub direction_queue: Vec<Direction>,
 }
 
 impl Game {
@@ -68,14 +69,30 @@ impl Game {
             for node in snake.nodes.iter().rev() {
                 rectangle(
                     [
-                        lerp(*snake_second_color.get(0).unwrap(),
-                            *snake_first_color.get(0).unwrap(), snake.nodes.len(), node_index),
-                        lerp(*snake_second_color.get(1).unwrap(),
-                            *snake_first_color.get(1).unwrap(), snake.nodes.len(), node_index),
-                        lerp(*snake_second_color.get(2).unwrap(),
-                            *snake_first_color.get(2).unwrap(), snake.nodes.len(), node_index),
-                        lerp(*snake_second_color.get(3).unwrap(),
-                            *snake_first_color.get(3).unwrap(), snake.nodes.len(), node_index)
+                        lerp(
+                            *snake_second_color.get(0).unwrap(),
+                            *snake_first_color.get(0).unwrap(),
+                            snake.nodes.len(),
+                            node_index,
+                        ),
+                        lerp(
+                            *snake_second_color.get(1).unwrap(),
+                            *snake_first_color.get(1).unwrap(),
+                            snake.nodes.len(),
+                            node_index,
+                        ),
+                        lerp(
+                            *snake_second_color.get(2).unwrap(),
+                            *snake_first_color.get(2).unwrap(),
+                            snake.nodes.len(),
+                            node_index,
+                        ),
+                        lerp(
+                            *snake_second_color.get(3).unwrap(),
+                            *snake_first_color.get(3).unwrap(),
+                            snake.nodes.len(),
+                            node_index,
+                        ),
                     ],
                     [
                         config.cell_w * node.x,
@@ -171,6 +188,30 @@ impl Game {
             self.snake.last_movement_duration = 0.0;
 
             if self.snake.is_alive {
+                // Check if there is a new direction in the input direction queue
+                if !self.direction_queue.is_empty() {
+                    let key = self.direction_queue.remove(0);
+
+                    match key {
+                        Direction::Up => match self.snake.direction {
+                            Direction::Down => {}
+                            _ => self.snake.direction = Direction::Up,
+                        },
+                        Direction::Down => match self.snake.direction {
+                            Direction::Up => {}
+                            _ => self.snake.direction = Direction::Down,
+                        },
+                        Direction::Right => match self.snake.direction {
+                            Direction::Left => {}
+                            _ => self.snake.direction = Direction::Right,
+                        },
+                        Direction::Left => match self.snake.direction {
+                            Direction::Right => {}
+                            _ => self.snake.direction = Direction::Left,
+                        },
+                    }
+                }
+
                 // Update the snakes location
                 match self.snake.direction {
                     Direction::Up => self.snake.update_node_locations(0.0, -1.0, self.config),
@@ -226,27 +267,7 @@ impl Game {
     pub fn handle_key_press(&mut self, key: &Key) {
         if !self.snake.is_alive {
             if *key == Key::Space {
-                // Create the snake
-                let mut nodes: LinkedList<Node> = LinkedList::new();
-                nodes.push_back(Node { x: 10.0, y: 10.0 });
-                nodes.push_back(Node { x: 11.0, y: 10.0 });
-                nodes.push_back(Node { x: 12.0, y: 10.0 });
-
-                let direction = Direction::Left;
-                let snake = Snake {
-                    nodes,
-                    direction,
-                    is_alive: true,
-                    is_turbo: false,
-                    movement_delay: 80.0,
-                    last_movement_duration: 0.0,
-                };
-                self.score = 0;
-                self.snake = snake;
-                self.obstacles = LinkedList::new();
-
-                self.place_random_obstacles(self.config.random_obstacle_count);
-                self.place_random_food();
+                self.reset_game();
             }
         } else {
             // Check for the turbo key
@@ -254,47 +275,15 @@ impl Game {
                 self.snake.is_turbo = true;
             }
 
-            let mut nodes_iter = self.snake.nodes.iter();
-            let head = nodes_iter.next().unwrap();
-            let second = nodes_iter.next().unwrap();
-
             if *key == Key::Up || *key == Key::W {
-                match self.snake.direction {
-                    Direction::Down => {}
-                    _ => {
-                        if head.y != second.y + 1 as f64 {
-                            self.snake.direction = Direction::Up
-                        }
-                    }
-                }
+                self.direction_queue.push(Direction::Up);
             } else if *key == Key::Down || *key == Key::S {
-                match self.snake.direction {
-                    Direction::Up => {}
-                    _ => {
-                        if head.y != second.y - 1 as f64 {
-                            self.snake.direction = Direction::Down
-                        }
-                    }
-                }
+                self.direction_queue.push(Direction::Down);
             } else if *key == Key::Right || *key == Key::D {
-                match self.snake.direction {
-                    Direction::Left => {}
-                    _ => {
-                        if head.x != second.x - 1 as f64 {
-                            self.snake.direction = Direction::Right
-                        }
-                    }
-                }
+                self.direction_queue.push(Direction::Right);
             } else if *key == Key::Left || *key == Key::A {
-                match self.snake.direction {
-                    Direction::Right => {}
-                    _ => {
-                        if head.x != second.x + 1 as f64 {
-                            self.snake.direction = Direction::Left
-                        }
-                    }
-                }
-            };
+                self.direction_queue.push(Direction::Left);
+            }
         }
     }
 
@@ -368,6 +357,30 @@ impl Game {
         }
 
         self.snake.is_alive = false;
+    }
+
+    pub fn reset_game(&mut self) {
+        // Create the snake
+        let mut nodes: LinkedList<Node> = LinkedList::new();
+        nodes.push_back(Node { x: 10.0, y: 10.0 });
+        nodes.push_back(Node { x: 11.0, y: 10.0 });
+        nodes.push_back(Node { x: 12.0, y: 10.0 });
+
+        let direction = Direction::Left;
+        let snake = Snake {
+            nodes,
+            direction,
+            is_alive: true,
+            is_turbo: false,
+            movement_delay: 80.0,
+            last_movement_duration: 0.0,
+        };
+        self.score = 0;
+        self.snake = snake;
+        self.obstacles = LinkedList::new();
+
+        self.place_random_obstacles(self.config.random_obstacle_count);
+        self.place_random_food();
     }
 }
 
@@ -477,8 +490,7 @@ fn render_game_over(
     );
 }
 
-
-fn lerp(from: f32, to: f32, step_count: usize, current_step: f32) -> f32{
+fn lerp(from: f32, to: f32, step_count: usize, current_step: f32) -> f32 {
     let should_increment = to > from;
     let current_addition = (f32::abs(from - to) / step_count as f32) * current_step as f32;
 
