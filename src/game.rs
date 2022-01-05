@@ -6,6 +6,8 @@ use rand::thread_rng;
 use rand::Rng;
 use std::collections::LinkedList;
 
+const SEPERATOR_LINE_RADIUS: f64 = 0.5;
+
 pub struct Game {
     pub config: Config,
     pub window: PistonWindow,
@@ -19,38 +21,31 @@ pub struct Game {
 
 impl Game {
     pub fn render(&mut self, _args: &RenderArgs, event: &Event, glyphs: &mut Glyphs) {
-        const SEPERATOR_LINE_RADIUS: f64 = 0.5;
 
-        let snake = &self.snake;
-        let obstacles = &self.obstacles;
-        let food = &self.food;
-        let font_size: u32 = 32;
-        let text_padding: f64 = 10.0;
-        let score = &self.score;
-        let high_score = &self.high_score;
-        let config = &self.config;
+        let font_size = 32;
+        let text_padding = 10.0;
 
         self.window.draw_2d(event, |c, g, device| {
             // Check if the snake is dead
-            if !snake.is_alive {
-                render_game_over(c, g, glyphs, *score, *high_score, *config);
+            if !self.snake.is_alive {
+                render_game_over(c, g, glyphs, self.score, self.high_score, self.config);
                 glyphs.factory.encoder.flush(device);
                 return;
             }
 
             // Clear the screen
-            clear(config.background_color, g);
-            let num_of_cells_horizontal = (config.screen_w / config.cell_w) as i32;
-            let num_of_cells_vertical = (config.screen_h / config.cell_w) as i32;
+            clear(self.config.background_color, g);
+            let num_of_cells_horizontal = (self.config.screen_w / self.config.cell_w) as i32;
+            let num_of_cells_vertical = (self.config.screen_h / self.config.cell_w) as i32;
 
             // Draw the food
             rectangle(
-                config.food_color,
+                self.config.food_color,
                 [
-                    config.cell_w * food.x,
-                    config.cell_w * food.y,
-                    config.cell_w,
-                    config.cell_w,
+                    self.config.cell_w * self.food.x,
+                    self.config.cell_w * self.food.y,
+                    self.config.cell_w,
+                    self.config.cell_w,
                 ],
                 c.transform,
                 g,
@@ -58,47 +53,47 @@ impl Game {
 
             // Draw the snake
             let mut node_index = 1.0;
-            let mut snake_first_color = config.snake_first_color;
-            let mut snake_second_color = config.snake_second_color;
+            let mut snake_first_color = self.config.snake_first_color;
+            let mut snake_second_color = self.config.snake_second_color;
 
-            if snake.is_turbo {
-                snake_first_color = config.snake_turbo_first_color;
-                snake_second_color = config.snake_turbo_second_color;
+            if self.snake.is_turbo {
+                snake_first_color = self.config.snake_turbo_first_color;
+                snake_second_color = self.config.snake_turbo_second_color;
             }
 
-            for node in snake.nodes.iter().rev() {
+            for node in self.snake.nodes.iter().rev() {
                 rectangle(
                     [
                         lerp(
                             *snake_second_color.get(0).unwrap(),
                             *snake_first_color.get(0).unwrap(),
-                            snake.nodes.len(),
+                            self.snake.nodes.len(),
                             node_index,
                         ),
                         lerp(
                             *snake_second_color.get(1).unwrap(),
                             *snake_first_color.get(1).unwrap(),
-                            snake.nodes.len(),
+                            self.snake.nodes.len(),
                             node_index,
                         ),
                         lerp(
                             *snake_second_color.get(2).unwrap(),
                             *snake_first_color.get(2).unwrap(),
-                            snake.nodes.len(),
+                            self.snake.nodes.len(),
                             node_index,
                         ),
                         lerp(
                             *snake_second_color.get(3).unwrap(),
                             *snake_first_color.get(3).unwrap(),
-                            snake.nodes.len(),
+                            self.snake.nodes.len(),
                             node_index,
                         ),
                     ],
                     [
-                        config.cell_w * node.x,
-                        config.cell_w * node.y,
-                        config.cell_w,
-                        config.cell_w,
+                        self.config.cell_w * node.x,
+                        self.config.cell_w * node.y,
+                        self.config.cell_w,
+                        self.config.cell_w,
                     ],
                     c.transform,
                     g,
@@ -109,26 +104,26 @@ impl Game {
 
             // Redraw the head in a different color
             rectangle(
-                config.snake_head_color,
+                self.config.snake_head_color,
                 [
-                    config.cell_w * snake.nodes.front().unwrap().x,
-                    config.cell_w * snake.nodes.front().unwrap().y,
-                    config.cell_w,
-                    config.cell_w,
+                    self.config.cell_w * self.snake.nodes.front().unwrap().x,
+                    self.config.cell_w * self.snake.nodes.front().unwrap().y,
+                    self.config.cell_w,
+                    self.config.cell_w,
                 ],
                 c.transform,
                 g,
             );
 
             // Draw the obstacles
-            for obstacle in obstacles.iter() {
+            for obstacle in self.obstacles.iter() {
                 rectangle(
-                    config.obstacle_color,
+                    self.config.obstacle_color,
                     [
-                        config.cell_w * obstacle.x,
-                        config.cell_w * obstacle.y,
-                        config.cell_w,
-                        config.cell_w,
+                        self.config.cell_w * obstacle.x,
+                        self.config.cell_w * obstacle.y,
+                        self.config.cell_w,
+                        self.config.cell_w,
                     ],
                     c.transform,
                     g,
@@ -140,10 +135,10 @@ impl Game {
             // Draw the seperator lines
             for i in 1..num_of_cells_horizontal {
                 line_from_to(
-                    config.seperator_line_color,
+                    self.config.seperator_line_color,
                     SEPERATOR_LINE_RADIUS,
-                    [config.cell_w * i as f64, 0.0],
-                    [config.cell_w * i as f64, config.screen_h],
+                    [self.config.cell_w * i as f64, 0.0],
+                    [self.config.cell_w * i as f64, self.config.screen_h],
                     c.transform,
                     g,
                 );
@@ -151,19 +146,19 @@ impl Game {
 
             for i in 1..num_of_cells_vertical {
                 line_from_to(
-                    config.seperator_line_color,
+                    self.config.seperator_line_color,
                     SEPERATOR_LINE_RADIUS,
-                    [0.0, config.cell_w * i as f64],
-                    [config.screen_w, config.cell_w * i as f64],
+                    [0.0, self.config.cell_w * i as f64],
+                    [self.config.screen_w, self.config.cell_w * i as f64],
                     c.transform,
                     g,
                 );
             }
 
             text(
-                config.snake_first_color,
+                self.config.snake_first_color,
                 font_size,
-                score.to_string().as_str(),
+                self.score.to_string().as_str(),
                 glyphs,
                 c.transform
                     .trans(text_padding, font_size as f64 + text_padding),
@@ -192,23 +187,16 @@ impl Game {
                 if !self.direction_queue.is_empty() {
                     let key = self.direction_queue.remove(0);
 
-                    match key {
-                        Direction::Up => match self.snake.direction {
-                            Direction::Down => {}
-                            _ => self.snake.direction = Direction::Up,
-                        },
-                        Direction::Down => match self.snake.direction {
-                            Direction::Up => {}
-                            _ => self.snake.direction = Direction::Down,
-                        },
-                        Direction::Right => match self.snake.direction {
-                            Direction::Left => {}
-                            _ => self.snake.direction = Direction::Right,
-                        },
-                        Direction::Left => match self.snake.direction {
-                            Direction::Right => {}
-                            _ => self.snake.direction = Direction::Left,
-                        },
+                    match (key, &self.snake.direction) {
+                        (Direction::Up, Direction::Down) => {},
+                        (Direction::Down, Direction::Up) => {},
+                        (Direction::Right, Direction::Left) => {},
+                        (Direction::Left, Direction::Right) => {},
+
+                        (Direction::Up, _ ) => {self.snake.direction = Direction::Up}
+                        (Direction::Down, _ ) => {self.snake.direction = Direction::Down}
+                        (Direction::Right, _ ) => {self.snake.direction = Direction::Right}
+                        (Direction::Left, _ ) => {self.snake.direction = Direction::Left}
                     }
                 }
 
@@ -221,42 +209,30 @@ impl Game {
                 };
 
                 // Check if the snake did bite itself
-                let mut game_over = false;
                 let mut snake_nodes_iter = self.snake.nodes.iter();
                 let head = snake_nodes_iter.next().unwrap().clone();
 
-                while let Some(node) = snake_nodes_iter.next() {
-                    if head.x == node.x && head.y == node.y {
-                        // Bit itself...
-                        game_over = true;
-                        break;
-                    }
+                if snake_nodes_iter.any(|node| node.eq(head)) {
+                    self.game_over();
+                    return;
                 }
 
                 // Check if the snake hit an obstacle
                 let mut obstacles_iter = self.obstacles.iter();
-
-                while let Some(node) = obstacles_iter.next() {
-                    if head.x == node.x && head.y == node.y {
-                        // Hit an obstacle
-                        game_over = true;
-                        break;
-                    }
-                }
-
-                if game_over {
+                if obstacles_iter.any(|node| node.eq(head)) {
                     self.game_over();
+                    return;
                 }
 
                 // Check if the snake has eaten the food
-                if head.x == self.food.x && head.y == self.food.y {
-                    // Just push back a new random node
-                    // it will be updated automatically
+                if head.eq(self.food) {
                     if self.snake.is_turbo {
                         self.score += 2;
                     } else {
                         self.score += 1;
                     }
+                    // Just push back a new random node
+                    // it will be updated automatically
                     self.snake.nodes.push_back(Node { x: -1.0, y: -1.0 });
                     self.place_random_food();
                 }
@@ -264,32 +240,31 @@ impl Game {
         }
     }
 
-    pub fn handle_key_press(&mut self, key: &Key) {
+    pub fn handle_key_press(&mut self, key: Key) {
         if !self.snake.is_alive {
-            if *key == Key::Space {
+            if key == Key::Space {
                 self.reset_game();
             }
+            return;
         } else {
             // Check for the turbo key
-            if *key == Key::LShift {
+            if key == Key::LShift {
                 self.snake.is_turbo = true;
             }
 
-            if *key == Key::Up || *key == Key::W {
-                self.direction_queue.push(Direction::Up);
-            } else if *key == Key::Down || *key == Key::S {
-                self.direction_queue.push(Direction::Down);
-            } else if *key == Key::Right || *key == Key::D {
-                self.direction_queue.push(Direction::Right);
-            } else if *key == Key::Left || *key == Key::A {
-                self.direction_queue.push(Direction::Left);
+            match key {
+                Key::Up | Key::W => self.direction_queue.push(Direction::Up),
+                Key::Down | Key::S => self.direction_queue.push(Direction::Down),
+                Key::Right | Key::D => self.direction_queue.push(Direction::Right),
+                Key::Left | Key::A => self.direction_queue.push(Direction::Left),
+                _ => {}
             }
         }
     }
 
-    pub fn handle_key_release(&mut self, key: &Key) {
+    pub fn handle_key_release(&mut self, key: Key) {
         if self.snake.is_alive {
-            if *key == Key::LShift {
+            if key == Key::LShift {
                 self.snake.is_turbo = false;
             }
         }
@@ -297,11 +272,8 @@ impl Game {
 
     pub fn place_random_obstacles(&mut self, count: u32) {
         for _ in 0..count {
-            let (rand_x, rand_y) = self.find_random_available_node();
-            self.obstacles.push_back(Node {
-                x: rand_x,
-                y: rand_y,
-            });
+            let (x, y) = self.find_random_available_node();
+            self.obstacles.push_back(Node {x,y});
         }
     }
 
@@ -317,37 +289,29 @@ impl Game {
 
         let mut rng = thread_rng();
         loop {
-            let rand_x: i32 = rng.gen_range(0, x_len as i32);
-            let rand_y: i32 = rng.gen_range(0, y_len as i32);
-
-            let mut flag = true;
+            let random_node = Node{
+                x: rng.gen_range(0, x_len as i32) as f64,
+                y: rng.gen_range(0, y_len as i32) as f64
+            };
 
             // Check if the snake is on those coordinates
             let mut snake_nodes_iter = self.snake.nodes.iter();
-            while let Some(current) = snake_nodes_iter.next() {
-                if current.x == rand_x as f64 && current.y == rand_y as f64 {
-                    flag = false;
-                    break;
-                }
+            if snake_nodes_iter.any(|node| node.eq(random_node)) {
+                continue;
             }
 
             // Check if the food is on those coordinates
-            if self.food.x == rand_x as f64 && self.food.y == rand_y as f64 {
-                flag = false;
+            if self.food.eq(random_node) {
+                continue;
             }
 
             // Check if one of the obstacles are on this coordinates
             let mut obstacles_iter = self.obstacles.iter();
-            while let Some(current) = obstacles_iter.next() {
-                if current.x == rand_x as f64 && current.y == rand_y as f64 {
-                    flag = false;
-                    break;
-                }
+            if obstacles_iter.any(|node| node.eq(random_node)) {
+                continue;
             }
 
-            if flag {
-                return (rand_x as f64, rand_y as f64);
-            }
+            return (random_node.x, random_node.y);
         }
     }
 
@@ -416,9 +380,9 @@ fn render_game_over(
     high_score: u16,
     config: Config,
 ) {
-    let font_size: u32 = 32;
+    let font_size = 32;
     let pop_up_offset = 50.0;
-    let game_over_font_size: u32 = 48;
+    let game_over_font_size = 48;
 
     // Pop-up square
     rectangle(
@@ -446,9 +410,7 @@ fn render_game_over(
     );
 
     // Render current score
-    let mut current_score_text = String::new();
-    current_score_text.push_str("Score: ");
-    current_score_text.push_str(score.to_string().as_str());
+    let current_score_text = format!("Score: {}", score);
 
     render_text_center(
         config.food_color,
@@ -462,9 +424,7 @@ fn render_game_over(
     );
 
     // Render high score
-    let mut high_score_text = String::new();
-    high_score_text.push_str("High Score: ");
-    high_score_text.push_str(high_score.to_string().as_str());
+    let high_score_text = format!("High Score: {}", high_score);
 
     render_text_center(
         config.food_color,
@@ -480,7 +440,7 @@ fn render_game_over(
     // Render info
     render_text_center(
         config.snake_first_color,
-        24 as u32,
+        24,
         "Press space to restart!",
         glyphs,
         360.0,

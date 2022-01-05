@@ -10,10 +10,16 @@ pub struct Snake {
     pub last_movement_duration: f64 // in ms
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub struct Node {
     pub x: f64,
     pub y: f64,
+}
+
+impl Node {
+    pub fn eq(&self, other_node: Node) -> bool {
+        return self.x == other_node.x && self.y == other_node.y;
+    }
 }
 
 #[derive(Clone, Debug)]

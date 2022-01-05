@@ -10,22 +10,22 @@ use piston_window::{Glyphs, PistonWindow, TextureSettings, WindowSettings};
 use snake::{Direction, Node, Snake};
 use std::collections::LinkedList;
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>>{
     let config = config::load_config_file();
 
     let mut window: PistonWindow = WindowSettings::new("Snake", [config.screen_w, config.screen_h])
         .exit_on_esc(true)
         .resizable(false)
-        .build()
-        .unwrap();
+        .build()?;
+        
 
     let font = include_bytes!("../assets/PlaymegamesReguler-2OOee.ttf");
     let mut glyphs = Glyphs::from_bytes(
         font,
         window.create_texture_context(),
         TextureSettings::new(),
-    )
-    .unwrap();
+    ).expect("failed to load glyphs from the provided font");
+
 
     // Create the snake
     let snake = Snake {
@@ -63,11 +63,13 @@ fn main() {
         }
 
         if let Some(Button::Keyboard(key)) = e.press_args() {
-            game.handle_key_press(&key)
+            game.handle_key_press(key)
         };
 
         if let Some(Button::Keyboard(key)) = e.release_args() {
-            game.handle_key_release(&key)
+            game.handle_key_release(key)
         };
-    }
+    };
+
+    Ok(())
 }
