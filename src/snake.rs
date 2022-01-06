@@ -1,13 +1,15 @@
 use crate::config::Config;
 use std::collections::LinkedList;
 
+type Milliseconds = f64;
+
 pub struct Snake {
     pub nodes: LinkedList<Node>,
     pub direction: Direction,
     pub is_alive: bool,
     pub is_turbo: bool,
-    pub movement_delay: f64, // in ms
-    pub last_movement_duration: f64 // in ms
+    pub movement_delay: Milliseconds,
+    pub last_movement_duration: Milliseconds
 }
 
 #[derive(Clone, Debug, Copy)]

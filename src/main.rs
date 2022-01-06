@@ -11,7 +11,7 @@ use snake::{Direction, Node, Snake};
 use std::collections::LinkedList;
 
 fn main() -> Result<(), Box<dyn std::error::Error>>{
-    let config = config::load_config_file();
+    let config = config::load_config_file()?;
 
     let mut window: PistonWindow = WindowSettings::new("Snake", [config.screen_w, config.screen_h])
         .exit_on_esc(true)

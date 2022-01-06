@@ -21,7 +21,6 @@ pub struct Game {
 
 impl Game {
     pub fn render(&mut self, _args: &RenderArgs, event: &Event, glyphs: &mut Glyphs) {
-
         let font_size = 32;
         let text_padding = 10.0;
 
@@ -53,13 +52,17 @@ impl Game {
 
             // Draw the snake
             let mut node_index = 1.0;
-            let mut snake_first_color = self.config.snake_first_color;
-            let mut snake_second_color = self.config.snake_second_color;
 
-            if self.snake.is_turbo {
-                snake_first_color = self.config.snake_turbo_first_color;
-                snake_second_color = self.config.snake_turbo_second_color;
-            }
+            let (snake_first_color, snake_second_color) = match self.snake.is_turbo {
+                true => (
+                    self.config.snake_turbo_first_color,
+                    self.config.snake_turbo_second_color,
+                ),
+                false => (
+                    self.config.snake_first_color,
+                    self.config.snake_second_color,
+                ),
+            };
 
             for node in self.snake.nodes.iter().rev() {
                 rectangle(
@@ -188,15 +191,15 @@ impl Game {
                     let key = self.direction_queue.remove(0);
 
                     match (key, &self.snake.direction) {
-                        (Direction::Up, Direction::Down) => {},
-                        (Direction::Down, Direction::Up) => {},
-                        (Direction::Right, Direction::Left) => {},
-                        (Direction::Left, Direction::Right) => {},
+                        (Direction::Up, Direction::Down) => {}
+                        (Direction::Down, Direction::Up) => {}
+                        (Direction::Right, Direction::Left) => {}
+                        (Direction::Left, Direction::Right) => {}
 
-                        (Direction::Up, _ ) => {self.snake.direction = Direction::Up}
-                        (Direction::Down, _ ) => {self.snake.direction = Direction::Down}
-                        (Direction::Right, _ ) => {self.snake.direction = Direction::Right}
-                        (Direction::Left, _ ) => {self.snake.direction = Direction::Left}
+                        (Direction::Up, _) => self.snake.direction = Direction::Up,
+                        (Direction::Down, _) => self.snake.direction = Direction::Down,
+                        (Direction::Right, _) => self.snake.direction = Direction::Right,
+                        (Direction::Left, _) => self.snake.direction = Direction::Left,
                     }
                 }
 
@@ -273,7 +276,7 @@ impl Game {
     pub fn place_random_obstacles(&mut self, count: u32) {
         for _ in 0..count {
             let (x, y) = self.find_random_available_node();
-            self.obstacles.push_back(Node {x,y});
+            self.obstacles.push_back(Node { x, y });
         }
     }
 
@@ -289,9 +292,9 @@ impl Game {
 
         let mut rng = thread_rng();
         loop {
-            let random_node = Node{
+            let random_node = Node {
                 x: rng.gen_range(0, x_len as i32) as f64,
-                y: rng.gen_range(0, y_len as i32) as f64
+                y: rng.gen_range(0, y_len as i32) as f64,
             };
 
             // Check if the snake is on those coordinates
@@ -325,22 +328,19 @@ impl Game {
 
     pub fn reset_game(&mut self) {
         // Create the snake
-        let mut nodes: LinkedList<Node> = LinkedList::new();
-        nodes.push_back(Node { x: 10.0, y: 10.0 });
-        nodes.push_back(Node { x: 11.0, y: 10.0 });
-        nodes.push_back(Node { x: 12.0, y: 10.0 });
+        let nodes: LinkedList<Node> = LinkedList::from([
+            Node { x: 10.0, y: 10.0 },
+            Node { x: 11.0, y: 10.0 },
+            Node { x: 12.0, y: 10.0 },
+        ]);
 
-        let direction = Direction::Left;
-        let snake = Snake {
-            nodes,
-            direction,
-            is_alive: true,
-            is_turbo: false,
-            movement_delay: 80.0,
-            last_movement_duration: 0.0,
-        };
+        self.snake.nodes = nodes;
+        self.snake.direction = Direction::Left;
+        self.snake.is_alive = true;
+        self.snake.is_turbo = false;
+        self.snake.last_movement_duration = 0.0;
+
         self.score = 0;
-        self.snake = snake;
         self.obstacles = LinkedList::new();
 
         self.place_random_obstacles(self.config.random_obstacle_count);
