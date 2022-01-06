@@ -38,7 +38,7 @@ pub fn new() -> Config {
     }
 }
 
-pub fn load_config_file() -> Result<Config, std::io::Error> {
+pub fn load_config_file() -> Result<Config, Box<dyn std::error::Error>> {
     let mut config = new();
 
     let mut config_path = current_exe().unwrap();
@@ -128,7 +128,7 @@ pub fn load_config_file() -> Result<Config, std::io::Error> {
                 }
             }
         }
-        Err(e) => return Err(e)
+        Err(_) => return Ok(config) // Just return the default config
     }
 
     Ok(config)
