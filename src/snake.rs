@@ -9,7 +9,7 @@ pub struct Snake {
     pub is_alive: bool,
     pub is_turbo: bool,
     pub movement_delay: Milliseconds,
-    pub last_movement_duration: Milliseconds
+    pub last_movement_duration: Milliseconds,
 }
 
 #[derive(Clone, Debug, Copy)]
@@ -34,7 +34,6 @@ pub enum Direction {
 
 impl Snake {
     pub fn update_node_locations(self: &mut Snake, x_change: f64, y_change: f64, config: Config) {
-
         let mut clone_nodes = self.nodes.clone();
         let mut iter = clone_nodes.iter_mut();
         let mut prev = iter.next().unwrap().clone();
